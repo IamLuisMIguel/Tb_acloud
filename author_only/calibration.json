@@ -1,0 +1,40 @@
+{
+  "checks": [
+    "independent full-Fock Jordan-Wigner matrices",
+    "finite-difference operator derivatives",
+    "independent projector curvature and sign",
+    "free ground-state energy from occupied single-particle levels",
+    "deterministic eigenvector rephasing invariance",
+    "reversed-loop Chern orientation",
+    "all 71 trajectories: tighter ODE tolerances and doubled equilibrium quadrature",
+    "independent unitary midpoint evolution and Richardson-refined current integral",
+    "fixed-flux adiabatic curvature quadrature: 128 versus 256 nodes",
+    "grader rejects drop_interaction",
+    "grader rejects flip_current",
+    "grader rejects omit_persistent_current",
+    "grader rejects reverse_geometric_sign",
+    "grader rejects replace_transport_by_integer"
+  ],
+  "maxima": {
+    "jordan_wigner_error": 6.661338147750939e-16,
+    "derivative_error": 1.8340529095439706e-10,
+    "projector_curvature_error": 3.178371454914952e-11,
+    "independent_dynamics_charge_error": 1.0252132476296083e-11,
+    "baseline_vs_tight": {
+      "q_total": 1.2380652059107433e-09,
+      "q_equilibrium": 3.699818229563334e-14,
+      "q_geometric": 1.2380669822675827e-09,
+      "excitation_probability": 1.8372969812219253e-11,
+      "final_norm_squared": 1.3578651536505504e-09,
+      "final_state_infidelity": 4.440892098500626e-16
+    }
+  },
+  "reference_runtime_seconds": 109.24386188299991,
+  "baseline_runtime_seconds": 39.87282151199997,
+  "environment": {
+    "python": "3.12.14",
+    "numpy": "2.3.5",
+    "scipy": "1.17.0"
+  },
+  "input_sha256": "f27dfcfaa1fa091e0c6c06be544fd4126930b382a557d1c0a8b47f73503681ed"
+}

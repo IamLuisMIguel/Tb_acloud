@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "cases": {
+    "free_L6": {
+      "L": 6, "V": 0.0, "W": 0.0,
+      "disorder": [-0.8, 0.35, 0.6, -0.15, 0.9, -0.45],
+      "loop": {"delta_offset": 0.0, "delta_radius": 0.5, "stagger_radius": 1.0}
+    },
+    "pump_L6": {
+      "L": 6, "V": 1.0, "W": 0.3,
+      "disorder": [-0.8, 0.35, 0.6, -0.15, 0.9, -0.45],
+      "loop": {"delta_offset": 0.0, "delta_radius": 0.5, "stagger_radius": 1.0}
+    },
+    "pump_L8": {
+      "L": 8, "V": 1.0, "W": 0.3,
+      "disorder": [-0.8, 0.35, 0.6, -0.15, 0.9, -0.45, 0.05, -0.65],
+      "loop": {"delta_offset": 0.0, "delta_radius": 0.5, "stagger_radius": 1.0}
+    },
+    "trivial_L6": {
+      "L": 6, "V": 1.0, "W": 0.3,
+      "disorder": [-0.8, 0.35, 0.6, -0.15, 0.9, -0.45],
+      "loop": {"delta_offset": 0.75, "delta_radius": 0.25, "stagger_radius": 1.0}
+    }
+  },
+  "operator_probes": [
+    {"case": "free_L6", "theta": 0.37, "phi": 0.91},
+    {"case": "pump_L6", "theta": 1.13, "phi": 1.0471975511965976},
+    {"case": "pump_L8", "theta": 2.27, "phi": -0.73},
+    {"case": "trivial_L6", "theta": 4.19, "phi": 2.11}
+  ],
+  "transfer_probe": {
+    "L": 4, "V": 0.7, "W": 0.23,
+    "disorder": [0.2, -0.7, 0.45, -0.1],
+    "loop": {"delta_offset": 0.1, "delta_radius": 0.4, "stagger_radius": 0.8},
+    "theta": 0.83, "phi": 1.39
+  },
+  "static_meshes": [12, 24],
+  "dynamics": {
+    "periods": [10.0, 30.0, 90.0],
+    "fixed_phi": 1.0471975511965976,
+    "twist_counts": [8, 16],
+    "average_periods": [30.0, 90.0],
+    "reverse_period": 90.0,
+    "control_period": 90.0,
+    "L8_period": 30.0
+  },
+  "tolerances": {
+    "operators_absolute": 2e-11,
+    "operators_relative": 1e-11,
+    "static_absolute": 2e-8,
+    "curvature_absolute": 2e-8,
+    "charge_absolute": 3e-6,
+    "probability_absolute": 3e-7,
+    "norm_absolute": 1e-7,
+    "final_state_infidelity": 1e-8
+  }
+}
