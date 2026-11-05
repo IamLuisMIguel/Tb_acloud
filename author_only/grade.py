@@ -9,10 +9,14 @@ import importlib.util
 import json
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import numpy as np
 
 import reference
+
+sys.path.insert(0, str(reference.ROOT / "benchmark"))
+import validate_results as artifact
 
 
 def load_module(path):
@@ -142,15 +146,50 @@ def grade(candidate, data, gold, selected="all"):
     return {"passed": all(x["passed"] for x in checks.rows), "score": sum(x["points"] for x in groups.values()), "available": sum(x["available"] for x in groups.values()), "groups": groups, "checks": checks.rows}
 
 
+def check_artifact(path, solution_path, data, gold):
+    try:
+        document = artifact.load_json(path)
+        summary = artifact.validate(document, reference.INPUTS, solution_path)
+        checks = Checks()
+        tolerance = data["tolerances"]
+        static_gold = {(row["case"], row["mesh"]): row["values"] for row in gold["static"]}
+        for row in document["static"]:
+            def compare_static(row=row):
+                for key, expected in static_gold[row["case"], row["mesh"]].items():
+                    close(row["values"][key], expected, tolerance["static_absolute"])
+            checks.run("artifact", f"static-{row['case']}-{row['mesh']}-{row['rephase']}", compare_static)
+        for section in ["curvature", "adiabatic_lines"]:
+            expected = {row["case"]: row["value"] for row in gold[section]}
+            for row in document[section]:
+                tol = tolerance["curvature_absolute"] if section == "curvature" else 2e-7
+                checks.run("artifact", f"{section}-{row['case']}", lambda r=row, v=expected[row["case"]], t=tol: close(r["value"], v, t))
+        for row, entry in zip(sorted(document["dynamics"], key=lambda r: r["id"]), gold["dynamics"]):
+            values = copy.deepcopy(row["values"])
+            values["final_state"] = np.array([complex(*z) for z in values["final_state"]])
+            recorded = SimpleNamespace(evolve=lambda *args, v=values, **kwargs: v)
+            case = data["cases"][entry["case"]]
+            checks.run("artifact", row["id"], lambda c=case, e=entry, module=recorded: check_evolution(module, c, e, tolerance))
+        return {**summary, "passed": all(row["passed"] for row in checks.rows), "numerical_checks": len(checks.rows), "checks": checks.rows}
+    except Exception as exc:
+        return {"passed": False, "error": str(exc)}
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--submission", type=Path, required=True)
     parser.add_argument("--reference", type=Path, default=Path(__file__).with_name("reference_results.json"))
     parser.add_argument("--group", choices=["all", "operators", "static", "curvature", "dynamics"], default="all")
     parser.add_argument("--output", type=Path)
+    parser.add_argument("--results", type=Path, help="Defaults to results.json beside the submission for a full evaluation")
     args = parser.parse_args()
     candidate = load_module(args.submission)
-    result = grade(candidate, json.loads(reference.INPUTS.read_text()), json.loads(args.reference.read_text()), args.group)
+    data = artifact.load_json(reference.INPUTS)
+    gold = artifact.load_json(args.reference)
+    result = grade(candidate, data, gold, args.group)
+    if args.group == "all" or args.results is not None:
+        results_path = args.results or args.submission.with_name("results.json")
+        result["artifact"] = check_artifact(results_path, args.submission, data, gold)
+        result["passed"] = result["passed"] and result["artifact"]["passed"]
     rendered = json.dumps(result, indent=2, allow_nan=False)
     if args.output:
         args.output.write_text(rendered + "\n")

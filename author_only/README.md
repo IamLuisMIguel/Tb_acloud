@@ -2,7 +2,7 @@
 
 ## What has been established
 
-The selected idea is now a fixed, numerically graded benchmark. The English natural-language prompt to give the candidate is `instructions.md`. Its binding mathematical specification is in `task.md`; literal model inputs, workloads, and tolerances are in `benchmark/inputs.json`. No disorder is generated during evaluation.
+The selected idea is now a fixed, numerically graded benchmark. The English natural-language prompt to give the candidate is `instructions.md`. Its binding mathematical specification is in `task.md`; literal model inputs, workloads, and tolerances are in `benchmark/inputs.json`. The candidate must also generate `results.json` under the public schema and format contract. No disorder is generated during evaluation.
 
 The benchmark evaluates a finite, precisely specified computational problem. It does not ask a model to establish an infinite-system phase diagram, prove continuous-torus gap bounds, or obtain exact finite-time quantization. Those would introduce claims that the proposed finite workload cannot certify.
 
@@ -17,6 +17,9 @@ instructions.md
 task.md
 benchmark/inputs.json
 benchmark/requirements.txt
+benchmark/results.schema.json
+benchmark/results_format.md
+benchmark/validate_results.py
 ```
 
 Do not give the candidate this directory, `idea.md`, a full repository checkout containing the author files, calibration logs, or the stored reference results. The directory name `author_only` is organizational; it is not an access-control mechanism.
@@ -39,6 +42,8 @@ The archive has fixed metadata, file order, and gzip timestamp. Repeated packagi
 | `validate_reference.py` | Independent identities, convergence checks, and synthetic fault rejection |
 | `calibration.json` | Recorded verification outcomes and numerical error margins |
 | `package_candidate.py` | Deterministic public-only archive generator |
+| `export_reference_artifact.py` | Converts the stored oracle to the candidate JSON format for author-side testing |
+| `test_results.py` | Artifact regression tests, including missing data and numerically incorrect but internally consistent results |
 
 ## Reproduce the reference and calibration
 
@@ -85,16 +90,20 @@ The numerical evaluator imports the candidate's `solution.py` and calls the four
 ```bash
 OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 python3 author_only/grade.py \
   --submission /path/to/submission/solution.py \
+  --results /path/to/submission/results.json \
   --output /tmp/grade.json
 ```
 
-The JSON output records individual pass/fail results, group scores, and the overall status. Exit status is zero only if all selected checks pass. Optional `--group operators`, `--group static`, `--group curvature`, or `--group dynamics` runs the corresponding subset; its score is out of that subset's available points, not out of 100.
+The JSON output records individual pass/fail results, group scores, artifact validation, and the overall status. Exit status is zero only if all selected checks and the required artifact checks pass. In a full run, `--results` defaults to `results.json` beside the submission file. Optional `--group operators`, `--group static`, `--group curvature`, or `--group dynamics` runs the corresponding subset; its score is out of that subset's available points, not out of 100. Subset runs check the artifact only when `--results` is explicitly supplied.
 
 An end-to-end smoke test uses the reference itself as the submission:
 
 ```bash
+python3 author_only/export_reference_artifact.py --output /tmp/reference-artifact.json
+
 OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 python3 author_only/grade.py \
   --submission author_only/reference.py \
+  --results /tmp/reference-artifact.json \
   --output /tmp/reference-grade.json
 ```
 
@@ -102,9 +111,27 @@ This tests evaluator orchestration and data handling. It is not an independent p
 
 The executed end-to-end smoke test passed all 106 checks: 7 operator probes, 16 static/gauge checks, 11 curvature checks, and 72 trajectories, including the transfer trajectory. Its numerical score was 100/100.
 
+The JSON extension preserves these API checks and adds a mandatory artifact gate. It checks all 95 recorded numerical results (16 static variants, 4 point curvatures, 4 adiabatic lines, and 71 trajectories) against the oracle, plus complete coverage, source/input fingerprints, and six self-consistent twist averages. A failed artifact does not alter the diagnostic 100-point API rubric but makes the overall submission fail.
+
 The score is 25 points for operator probes, 25 for static/gauge checks, 10 for pointwise and integrated curvature, and 40 for trajectories. Each evaluator check is all-or-nothing across its required fields; checks have equal weight within their group. Scores are diagnostic, and passing requires every check. Explanatory prose is not part of the automated numerical score. This evaluator does not enforce report existence, report language, or correctness of derivations through text matching.
 
 The reference and candidate state vectors are compared modulo global phase, and normalization is checked separately. Signed charges, excitation probabilities, and the consistency of returned fields are also tested. No returned integer is accepted as a substitute for finite-time evolution.
+
+## Machine-readable results and regression checks
+
+`benchmark/results_format.md` defines the candidate's `results.json`, and `benchmark/results.schema.json` is its strict Draft 2020-12 schema. The public validator checks parsing, finite values, record counts and identities, coordinates, source/input fingerprints, final-state dimensions and norms, gauge consistency, charge subtraction, and arithmetic twist averages. It contains no oracle values. The author-side gate then compares the recorded numbers and phase-invariant final states with the existing reference.
+
+The candidate must implement `python3 solution.py --inputs benchmark/inputs.json --output results.json` and generate the report tables from that file. Metadata is provenance information, not proof of execution. API reevaluation and reference comparisons remain necessary. The grader does not run that CLI itself or verify report prose; it validates the submitted artifact and independently calls the APIs.
+
+An author-side fixture can be exported without rerunning the simulation, using the command above. This conversion reuses the stored expected static results for both rephasing variants; it is an adapter for grader tests, not evidence of a new rephasing calculation. It is excluded from the candidate archive, as are the answers it exports.
+
+Run the artifact regression suite with:
+
+```bash
+OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 python3 author_only/test_results.py
+```
+
+The tests cover successful format and numerical validation; record-order and global-phase invariance; agreement between the public trajectory plan and the reference schedule; missing artifacts; 17 malformed or inconsistent data variants; strict JSON parsing; and an internally consistent but physically incorrect charge that the public checker accepts and the numerical oracle rejects. The validator dependency `jsonschema==4.26.0` is included in the public requirements. Core input bytes and physics tolerances are unchanged, so the original reference fixture remains applicable.
 
 ## Calibrated scientific distinctions
 

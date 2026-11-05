@@ -1,0 +1,120 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Interacting charge pump submission results, version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "input_sha256", "provenance", "static", "curvature", "adiabatic_lines", "dynamics", "averages"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "input_sha256": {"$ref": "#/$defs/hash"},
+    "provenance": {
+      "type": "object", "additionalProperties": false,
+      "required": ["python", "numpy", "scipy", "command", "solution_sha256"],
+      "properties": {
+        "python": {"type": "string", "minLength": 1},
+        "numpy": {"type": "string", "minLength": 1},
+        "scipy": {"type": "string", "minLength": 1},
+        "command": {"type": "string", "minLength": 1},
+        "solution_sha256": {"$ref": "#/$defs/hash"}
+      }
+    },
+    "static": {
+      "type": "array", "minItems": 16, "maxItems": 16,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["case", "mesh", "rephase", "values"],
+        "properties": {
+          "case": {"$ref": "#/$defs/case"},
+          "mesh": {"enum": [12, 24]},
+          "rephase": {"type": "boolean"},
+          "values": {
+            "type": "object", "additionalProperties": false,
+            "required": ["chern", "sampled_min_gap", "min_link_overlap", "max_abs_plaquette_phase", "kubo_integral"],
+            "properties": {
+              "chern": {"type": "number"},
+              "sampled_min_gap": {"type": "number"},
+              "min_link_overlap": {"type": "number"},
+              "max_abs_plaquette_phase": {"type": "number"},
+              "kubo_integral": {"type": "number"}
+            }
+          }
+        }
+      }
+    },
+    "curvature": {
+      "type": "array", "minItems": 4, "maxItems": 4,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["case", "theta", "phi", "value"],
+        "properties": {
+          "case": {"$ref": "#/$defs/case"},
+          "theta": {"type": "number"}, "phi": {"type": "number"},
+          "value": {"type": "number"}
+        }
+      }
+    },
+    "adiabatic_lines": {
+      "type": "array", "minItems": 4, "maxItems": 4,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["case", "phi", "value"],
+        "properties": {
+          "case": {"$ref": "#/$defs/case"},
+          "phi": {"type": "number"}, "value": {"type": "number"}
+        }
+      }
+    },
+    "dynamics": {
+      "type": "array", "minItems": 71, "maxItems": 71,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["id", "case", "phi", "T", "direction", "values"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^trajectory_[0-9]{3}$"},
+          "case": {"$ref": "#/$defs/case"},
+          "phi": {"type": "number"},
+          "T": {"type": "number", "exclusiveMinimum": 0},
+          "direction": {"enum": [-1, 1]},
+          "values": {
+            "type": "object", "additionalProperties": false,
+            "required": ["q_total", "q_equilibrium", "q_geometric", "final_norm_squared", "excitation_probability", "final_state"],
+            "properties": {
+              "q_total": {"type": "number"},
+              "q_equilibrium": {"type": "number"},
+              "q_geometric": {"type": "number"},
+              "final_norm_squared": {"type": "number"},
+              "excitation_probability": {"type": "number"},
+              "final_state": {
+                "type": "array", "minItems": 1,
+                "items": {
+                  "type": "array", "minItems": 2, "maxItems": 2,
+                  "items": {"type": "number"}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "averages": {
+      "type": "array", "minItems": 6, "maxItems": 6,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["case", "twists", "T", "direction", "q_total", "q_equilibrium", "q_geometric"],
+        "properties": {
+          "case": {"$ref": "#/$defs/case"},
+          "twists": {"enum": [8, 16]},
+          "T": {"type": "number", "exclusiveMinimum": 0},
+          "direction": {"enum": [-1, 1]},
+          "q_total": {"type": "number"},
+          "q_equilibrium": {"type": "number"},
+          "q_geometric": {"type": "number"}
+        }
+      }
+    }
+  },
+  "$defs": {
+    "hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "case": {"enum": ["free_L6", "pump_L6", "pump_L8", "trivial_L6"]}
+  }
+}
