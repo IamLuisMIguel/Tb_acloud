@@ -8,7 +8,10 @@ import tarfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-PUBLIC_FILES = ["instructions.md", "task.md", "benchmark/inputs.json", "benchmark/requirements.txt"]
+PUBLIC_FILES = [
+    "instructions.md", "task.md", "benchmark/inputs.json", "benchmark/requirements.txt",
+    "benchmark/results.schema.json", "benchmark/results_format.md", "benchmark/validate_results.py",
+]
 
 
 def main():

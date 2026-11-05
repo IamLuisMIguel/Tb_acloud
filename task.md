@@ -4,7 +4,7 @@
 
 Determine how the many-body Chern number of a disordered, interacting Rice–Mele ring relates to its finite-time transported particle number. Implement independent static and dynamical calculations, distinguish fixed-twist from twist-averaged responses, and quantify the relevant numerical errors.
 
-This is a computational physics task. Submit executable Python code in `solution.py` and a concise English `report.md`. The evaluator imports and calls your code; a derivation, precomputed table, or rounded topological integer alone is insufficient. Standard numerical linear algebra, integration, and optimization libraries are permitted. Implement the Hamiltonian and physical observables yourself; do not substitute calls to a specialized charge-pumping solver.
+This is a computational physics task. Submit executable Python code in `solution.py`, a concise English `report.md`, and machine-readable numerical results in `results.json`. The evaluator imports and calls your code and independently validates the recorded artifact; a derivation, precomputed table, or rounded topological integer alone is insufficient. Standard numerical linear algebra, integration, and optimization libraries are permitted. Implement the Hamiltonian and physical observables yourself; do not substitute calls to a specialized charge-pumping solver.
 
 All numerical inputs are in `benchmark/inputs.json`. They are data, not instructions to regenerate disorder. No randomness, external datasets, network access, GPU, or thermodynamic-limit calculation is required.
 
@@ -230,8 +230,16 @@ The English report is required as an explanation, but prose quality is not inclu
 
 ## 7. Execution and reproduction
 
-The calibrated environment uses Python 3.12, NumPy 2.3.5, and SciPy 1.17.0. These versions are listed in `benchmark/requirements.txt`. The workload is CPU-only. Use `OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1` when reproducing reference timings or comparing refinements.
+The calibrated environment uses Python 3.12, NumPy 2.3.5, and SciPy 1.17.0. The artifact validator also uses jsonschema 4.26.0. These versions are listed in `benchmark/requirements.txt`. The workload is CPU-only. Use `OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1` when reproducing reference timings or comparing refinements.
 
 In `report.md`, give terminal commands that import your implementation, execute the required calculations, and reproduce your tables. Generate numerical results from your functions rather than embedding reference tables. A plot is optional and receives no numerical score.
 
 No reference answers, author implementation, or grading code are part of the candidate inputs.
+
+## 8. Machine-readable artifact
+
+Implement the terminal command `python3 solution.py --inputs benchmark/inputs.json --output results.json`. It must run the workload using your implementation and write the output contract specified in `benchmark/results_format.md` and `benchmark/results.schema.json`. Keep module imports free of workload side effects.
+
+Record all 16 static/rephasing calculations, four pointwise curvatures, four fixed-twist adiabatic integrals, all 71 named trajectories, and six twist averages, together with version metadata and SHA-256 fingerprints of the input file and submitted `solution.py`. Serialize complex state amplitudes as `[real, imaginary]` pairs and preserve full numerical precision. Do not add matrices or private transfer probes to the artifact.
+
+The public command `python3 benchmark/validate_results.py --list-plan` prints the required trajectory IDs and coordinates. Validate your completed artifact with `python3 benchmark/validate_results.py results.json --inputs benchmark/inputs.json --solution solution.py`. This checks structure, coverage, fingerprints, and internal consistency without revealing reference values. The author-side evaluator also compares recorded results to the numerical oracle, in addition to exercising your APIs. Both must pass; the existing numerical score remains out of 100. Use the JSON as the source of the report's numerical tables. A database may be supplied as an optional convenience but does not replace `results.json`.
