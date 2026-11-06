@@ -1,8 +1,10 @@
-# Interacting Thouless pumping: a deterministic computational benchmark
+# Interacting Thouless pumping: deterministic benchmark, version 2
 
 ## Objective
 
 Determine how the many-body Chern number of a disordered, interacting Rice–Mele ring relates to its finite-time transported particle number. Implement independent static and dynamical calculations, distinguish fixed-twist from twist-averaged responses, and quantify the relevant numerical errors.
+
+Version 2 retains the baseline in Sections 1–8 and adds the mandatory experiments in Section 9. The original `inputs.json` bytes and baseline reference quantities are unchanged. Output schema version 2 is a separate version identifier. The extension constants below are additional fixed experimental inputs.
 
 This is a computational physics task. Submit executable Python code in `solution.py`, a concise English `report.md`, and machine-readable numerical results in `results.json`. The evaluator imports and calls your code and independently validates the recorded artifact; a derivation, precomputed table, or rounded topological integer alone is insufficient. Standard numerical linear algebra, integration, and optimization libraries are permitted. Implement the Hamiltonian and physical observables yourself; do not substitute calls to a specialized charge-pumping solver.
 
@@ -243,3 +245,90 @@ Implement the terminal command `python3 solution.py --inputs benchmark/inputs.js
 Record all 16 static/rephasing calculations, four pointwise curvatures, four fixed-twist adiabatic integrals, all 71 named trajectories, and six twist averages, together with version metadata and SHA-256 fingerprints of the input file and submitted `solution.py`. Serialize complex state amplitudes as `[real, imaginary]` pairs and preserve full numerical precision. Do not add matrices or private transfer probes to the artifact.
 
 The public command `python3 benchmark/validate_results.py --list-plan` prints the required trajectory IDs and coordinates. Validate your completed artifact with `python3 benchmark/validate_results.py results.json --inputs benchmark/inputs.json --solution solution.py`. This checks structure, coverage, fingerprints, and internal consistency without revealing reference values. The author-side evaluator also compares recorded results to the numerical oracle, in addition to exercising your APIs. Both must pass; the existing numerical score remains out of 100. Use the JSON as the source of the report's numerical tables. A database may be supplied as an optional convenience but does not replace `results.json`.
+
+## 9. Version-2 scientific extension
+
+All three experiments below are mandatory. Numerical methods are your choice. The additional arrays are evidence to be evaluated, rather than a prescribed implementation strategy. The original 100-point API score remains diagnostic; complete acceptance also requires all version-2 checks to pass. Passing only the baseline is insufficient for this revised task.
+
+### 9.1 Flux frame and the parameter-space boundary
+
+Define the dimensionless many-body operators
+
+$$
+X=\sum_{j=0}^{L-1}\frac{j}{L}n_j,
+\qquad R(\phi)=e^{i\phi X},
+\qquad H_R(\theta,\phi)=R(\phi)H(\theta,\phi)R(\phi)^\dagger.
+$$
+
+The coefficients are represented in the same canonical occupation basis as the baseline. This is a different state frame for the same physical family. Its fiber identification at the twist boundary is
+
+$$
+v(\theta,\phi+2\pi)=S\,v(\theta,\phi),\qquad S=e^{2\pi iX}.
+$$
+
+For `pump_L6` and `trivial_L6`, at both baseline meshes, the required evidence is a normalized ground-state frame at every mesh node and two unrounded lattice Chern sums. `sewn_chern` uses the physical boundary identification above and the plaquette orientation of Section 2. `unsewn_chern` is the diagnostic sum obtained by treating the coefficient arrays as ordinarily periodic at the twist boundary. The reported minimum link magnitude and largest plaquette phase refer to the physically identified sum. State which result is an invariant of the specified family and explain any discrepancy. Include the explicitly required rephasing behavior in the API.
+
+### 9.2 Moving frame, current response, and phase-sensitive readout
+
+For each of baseline trajectories `trajectory_000`, `trajectory_003`, and `trajectory_005`, let `s=t/T` and define
+
+$$
+a_j=\frac{(-1)^j(j+1)}{5L},\quad
+A=\sum_j a_jn_j,\quad\widehat N=\sum_jn_j,\quad
+G(s,\phi)=\exp\!\left[i\left(\phi X+\sin(2\pi s)A+\frac{\phi s}{4}\widehat N\right)\right].
+$$
+
+The canonical state follows the original Schrödinger equation and protocol. The frame state is defined by `psi_frame(t) = G(s, phi) psi_canonical(t)`, including its relative phase and its transformed initial condition. The frame Hamiltonian is the generator for which this state satisfies the Schrödinger equation. Determine that generator, its total partial derivative with respect to `phi` at fixed `theta`, `s`, and `T`, and the physical boundary-current operator expressed in this frame. The latter measures particles crossing the same physical bond as the baseline.
+
+The required integrated observables are
+
+$$
+Q_{\rm boundary}=\int_0^T\langle\psi_f|I_{{\rm boundary},f}|\psi_f\rangle\,dt,
+\qquad
+Q_{\rm parameter}=-\int_0^T\langle\psi_f|\partial_\phi H_f|\psi_f\rangle\,dt.
+$$
+
+These are total currents, without equilibrium-current subtraction. Also report the endpoint change in the canonical expectation of
+
+$$
+K(s,\phi)=-iG(s,\phi)^\dagger\partial_\phi G(s,\phi).
+$$
+
+The two complex readout amplitudes are defined in a fixed coefficient basis and with a transformed detector, respectively:
+
+$$
+\mathcal A_{\rm raw}=\langle\psi_c(T)|\psi_f(T)\rangle,
+\qquad
+\mathcal A_{\rm cov}=\langle\psi_c(T)|G(1,\phi)^\dagger|\psi_f(T)\rangle.
+$$
+
+They are Ramsey overlap diagnostics with the stated readout conventions. The raw amplitude is deliberately frame dependent; it is not claimed to be a gauge-invariant charge. Return canonical and frame states at the beginning and end, the two charges, the change in `K`, and both complex amplitudes. An arbitrary common initial phase is permitted, but the frame and canonical branches must use their defined relative phase. Independent endpoint phase alignment, or dropping a scalar part of the generator, is incompatible with these readouts.
+
+Explain the relationship between the two current responses and the endpoint quantity, and which current corresponds to the baseline particle detector. Do not identify them merely because both involve a flux parameter.
+
+### 9.3 Validity of the ground-state bundle at a transition
+
+Use the `free_L6` case, retaining its original `delta_radius = 0.5` and `stagger_radius = 1`, but set `delta_offset` in turn to `0.49`, `0.50`, and `0.51`. All other parameters are unchanged.
+
+For each loop report whether the rank-one ground-state bundle is gapped or singular over the continuous `(theta, phi)` torus. Return the continuous minimum of `E1-E0`, a minimizing coordinate pair, the ground-space rank and full ground-space projector at that pair, and the rank-one Chern number if it is defined. A singular bundle must have `chern: null`, rather than a regularized or arbitrarily assigned integer. The projector at a degeneracy means the entire lowest-energy eigenspace, not a selected eigenvector from it.
+
+For each gapped loop also return the unrounded baseline static quantities `chern`, `kubo_integral`, and `sampled_min_gap` at meshes 12 and 24. For a singular loop the `mesh_values` array is empty. The report must justify the continuous-gap and invariant-validity decisions and explain what the two finite-mesh response quadratures do or do not establish. Do not infer a continuous gap solely from a positive value on an unrelated sample grid.
+
+### 9.4 Additional executable interfaces
+
+The following names and return contracts are evaluation interfaces. They do not constrain the internal numerical algorithms.
+
+- `frame_operators(case, theta, phi, s, T)` returns `H`, `dphi`, and `boundary_current` as dense complex matrices in the canonical coefficient basis. The frame is `G` from Section 9.2, not just the static `R` from Section 9.1.
+- `frame_static(case, mesh, rephase=False)` returns `ground_frames`, an array of shape `(mesh, mesh, binomial(L, L/2))`, and `values` with keys `sewn_chern`, `unsewn_chern`, `min_link_overlap`, and `max_abs_plaquette_phase`. This experiment uses the static `H_R`. When requested, `rephase=True` applies the same node phases as Section 2 before the observables are reported.
+- `frame_evolve(case, phi, T, direction, rtol=1e-10, atol=1e-12)` returns `canonical_initial_state`, `canonical_final_state`, `frame_initial_state`, `frame_final_state`, `q_boundary`, `q_parameter`, `polarization_change`, `ramsey_raw`, and `ramsey_covariant`. The four states are complex vectors, both Ramsey values are complex scalars, and the remaining values are real. The canonical endpoint must agree with the corresponding baseline physical trajectory modulo a common phase; the frame-covariance and readout comparisons do not allow an independent frame phase.
+- `diagnose_transition(case, delta_offset)` returns `status`, `minimum_gap`, `witness`, `ground_rank`, `ground_projector`, `chern`, and `mesh_values` as defined in Section 9.3 and the JSON contract. `case` is the unmodified `free_L6` dictionary; the argument supplies its replacement offset. The API also supports offsets in `[0.48,0.495]`, exactly `0.5`, and `[0.505,0.52]` for deterministic transfer checks.
+
+The frame-operator API also supports the supplied four-site transfer model and arbitrary finite angles in the same moderate range as the baseline. No function may mutate the caller's case dictionary.
+
+### 9.5 Additional acceptance criteria
+
+Frame Hamiltonian covariance, Hermiticity, and the boundary-current matrix use absolute tolerance `2e-10`. The total flux derivative is checked to `2e-8`. Frame-grid ground-state residuals and componentwise covariance of endpoint vectors use `2e-7`; vector normalization uses `1e-7`. Relative phases in these covariance checks are retained. Complex Ramsey amplitudes use absolute tolerance `3e-7`, and integrated charges and the endpoint-current relation use `3e-6`.
+
+New Chern sums and finite-mesh scalars use `2e-8`. Transition minimum gaps use `2e-8`; minimizing angles are compared modulo `2*pi` within `1e-6`. Ground projectors use componentwise tolerance `2e-7`, including Hermiticity, idempotence, rank, and agreement with the entire lowest-energy subspace. The singular/gapped classification and null-invariant decision are exact categorical outputs.
+
+These are new requirements for version 2, not grounds for reclassifying a successful version-1 submission. All new experiments retain the small CPU-feasible Hilbert spaces; no larger-system or unreasonable precision requirement is being introduced.
